@@ -12,7 +12,7 @@ module.exports = async (bot, message) => {
 🔧 *This bot was created for testing purposes only.*
 Built and maintained by *Empire Tech*.
 
-🧪 Just a sample menu to test bot functionality.`,
+🧪 Just a sample menu to test bot functionality.`, 
             parse_mode: 'Markdown',
             reply_markup: {
                 inline_keyboard: [
