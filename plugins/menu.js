@@ -1,6 +1,11 @@
 require("dotenv").config();
 
 module.exports = async (ctx) => {
+    if (typeof ctx.replyWithPhoto !== 'function') {
+        console.error('❌ ctx is not a valid Telegraf context');
+        return;
+    }
+
     const firstName = ctx.from?.first_name || 'User';
 
     try {
@@ -24,6 +29,8 @@ Built and maintained by *Empire Tech*.
         );
     } catch (error) {
         console.error('Error in menu command:', error.message);
-        await ctx.reply('❌ Failed to load the menu. Please try again later.');
+        if (typeof ctx.reply === 'function') {
+            await ctx.reply('❌ Failed to load the menu. Please try again later.');
+        }
     }
 };
