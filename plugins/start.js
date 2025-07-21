@@ -4,7 +4,6 @@ const path = require("path");
 
 const USERS_FILE = path.join(__dirname, "../database/users.json");
 
-// Load existing users from file
 function loadUsers() {
   try {
     const data = fs.readFileSync(USERS_FILE);
@@ -14,7 +13,6 @@ function loadUsers() {
   }
 }
 
-// Save a new user to the file
 function saveUser(userId) {
   const users = loadUsers();
   if (!users.includes(userId)) {
@@ -23,53 +21,44 @@ function saveUser(userId) {
   }
 }
 
-// Check if the user is in both the group and channel
 async function checkMembership(bot, userId) {
   try {
-    const groupMember = await bot.telegram.getChatMember(process.env.GROUP_ID, userId);
-    const channelMember = await bot.telegram.getChatMember(process.env.CHANNEL_ID, userId);
-
-    return groupMember.status !== "left" && channelMember.status !== "left";
+    const group = await bot.telegram.getChatMember(process.env.GROUP_ID, userId);
+    const channel = await bot.telegram.getChatMember(process.env.CHANNEL_ID, userId);
+    return group.status !== "left" && channel.status !== "left";
   } catch (err) {
-    console.error("❌ checkMembership error:", err);
+    console.error("❌ checkMembership error:", err.message);
     return false;
   }
 }
 
-// Export bot handlers
 module.exports = (bot) => {
-  bot.on("message", async (ctx) => {
-    const messageText = ctx.message?.text;
+  bot.command("start", async (ctx) => {
     const userId = ctx.from.id;
 
-    if (!messageText || (!messageText.startsWith(".") && !messageText.startsWith("/"))) return;
-
     const isMember = await checkMembership(bot, userId);
-
     if (!isMember) {
-      return ctx.replyWithPhoto(process.env.PP, {
-        caption: `❌ *Access Denied!*\n\nYou must join, subscribe and follow all the *given links* to use this bot.`,
-        parse_mode: "Markdown",
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: "📲 WhatsApp", url: process.env.WHATSAPP_LINK }],
-            [{ text: "▶️ YouTube", url: process.env.YOUTUBE_LINK }],
-            [{ text: "📷 Instagram", url: process.env.INSTAGRAM_LINK }],
-            [{ text: "🔹 Telegram Group", url: process.env.GROUP_LINK }],
-            [{ text: "🔵 Telegram Channel", url: process.env.CHANNEL_LINK }],
-            [{ text: "🔄 Check Again", callback_data: "check_membership" }],
-          ]
+      return ctx.replyWithPhoto(
+        { url: process.env.PP },
+        {
+          caption: `❌ *Access Denied!*\n\nYou must join, subscribe and follow all the *given links* to use this bot.`,
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "📲 WhatsApp", url: process.env.WHATSAPP_LINK }],
+              [{ text: "▶️ YouTube", url: process.env.YOUTUBE_LINK }],
+              [{ text: "📷 Instagram", url: process.env.INSTAGRAM_LINK }],
+              [{ text: "🔹 Telegram Group", url: process.env.GROUP_LINK }],
+              [{ text: "🔵 Telegram Channel", url: process.env.CHANNEL_LINK }],
+              [{ text: "🔄 Check Again", callback_data: "check_membership" }],
+            ],
+          },
         }
-      });
+      );
     }
 
-    // Save user to local DB
     saveUser(userId);
-
-    // Auto-redirect to /menu on /start
-    if (messageText === "/start") {
-      return bot.telegram.emit("text", { text: "/menu", from: ctx.from, chat: ctx.chat });
-    }
+    return ctx.telegram.sendMessage(userId, "/menu");
   });
 
   bot.action("check_membership", async (ctx) => {
@@ -80,7 +69,7 @@ module.exports = (bot) => {
       return ctx.answerCbQuery("❌ You're still not a member!", { show_alert: true });
     }
 
-    ctx.answerCbQuery("✅ Membership confirmed!");
-    ctx.telegram.sendMessage(userId, "/menu");
+    await ctx.answerCbQuery("✅ Membership confirmed!");
+    await ctx.telegram.sendMessage(userId, "/menu");
   });
 };
