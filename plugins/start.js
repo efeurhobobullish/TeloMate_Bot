@@ -58,7 +58,7 @@ module.exports = (bot) => {
     }
 
     saveUser(userId);
-    return ctx.telegram.sendMessage(userId, "/menu");
+    return ctx.reply("✅ You're verified!\n\nType /menu to access the bot.");
   });
 
   bot.action("check_membership", async (ctx) => {
@@ -70,6 +70,6 @@ module.exports = (bot) => {
     }
 
     await ctx.answerCbQuery("✅ Membership confirmed!");
-    await ctx.telegram.sendMessage(userId, "/menu");
+    await ctx.telegram.sendMessage(userId, "✅ You're verified!\n\nType /menu to access the bot.");
   });
 };
