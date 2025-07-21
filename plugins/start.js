@@ -1,9 +1,10 @@
+require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
-const axios = require("axios");
 
 const USERS_FILE = path.join(__dirname, "../database/users.json");
 
+// Load existing users from file
 function loadUsers() {
   try {
     const data = fs.readFileSync(USERS_FILE);
@@ -13,6 +14,7 @@ function loadUsers() {
   }
 }
 
+// Save a new user to the file
 function saveUser(userId) {
   const users = loadUsers();
   if (!users.includes(userId)) {
@@ -21,15 +23,20 @@ function saveUser(userId) {
   }
 }
 
+// Check if the user is in both the group and channel
 async function checkMembership(bot, userId) {
   try {
-    const res = await bot.telegram.getChatMember(process.env.CHANNEL_ID, userId);
-    return ['member', 'creator', 'administrator'].includes(res.status);
-  } catch {
+    const groupMember = await bot.telegram.getChatMember(process.env.GROUP_ID, userId);
+    const channelMember = await bot.telegram.getChatMember(process.env.CHANNEL_ID, userId);
+
+    return groupMember.status !== "left" && channelMember.status !== "left";
+  } catch (err) {
+    console.error("❌ checkMembership error:", err);
     return false;
   }
 }
 
+// Export bot handlers
 module.exports = (bot) => {
   bot.on("message", async (ctx) => {
     const messageText = ctx.message?.text;
@@ -56,11 +63,12 @@ module.exports = (bot) => {
       });
     }
 
+    // Save user to local DB
     saveUser(userId);
 
-    // If member, redirect to menu command
+    // Auto-redirect to /menu on /start
     if (messageText === "/start") {
-      return bot.telegram.emit('text', { text: '/menu', from: ctx.from, chat: ctx.chat });
+      return bot.telegram.emit("text", { text: "/menu", from: ctx.from, chat: ctx.chat });
     }
   });
 
