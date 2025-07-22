@@ -17,7 +17,6 @@ module.exports = (bot) => {
 
       const name = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : "");
 
-      const uptime = formatUptime(process.uptime());
       const now = new Date();
       const formattedDate = now.toLocaleDateString("en-GB");
       const formattedTime = now.toLocaleTimeString("en-GB");
