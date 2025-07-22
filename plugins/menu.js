@@ -2,7 +2,7 @@ require("dotenv").config();
 const os = require("os");
 const fs = require("fs");
 const path = require("path");
-
+const { runtime, sleep, fetchJson } = require('../utils/functions');
 module.exports = (bot) => {
   bot.command("menu", async (ctx) => {
     try {
@@ -12,7 +12,7 @@ module.exports = (bot) => {
       const totalMem = os.totalmem();
       const freeMem = os.freemem();
       const usedMem = totalMem - freeMem;
-
+      const uptime = runtime(process.uptime()); //
       const pluginCount = fs.readdirSync(path.join(__dirname)).filter(file => file.endsWith(".js")).length;
 
       const name = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : "");
