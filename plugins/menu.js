@@ -1,71 +1,53 @@
 require("dotenv").config();
 const fs = require("fs");
+
+const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const axios = require("axios");
 
-const USERS_FILE = path.join(__dirname, "../database/users.json"); // Update if using MongoDB
-
-function getUptime() {
-  let seconds = process.uptime();
-  const days = Math.floor(seconds / (3600 * 24));
-  seconds %= 3600 * 24;
-  const hours = Math.floor(seconds / 3600);
-  seconds %= 3600;
-  const minutes = Math.floor(seconds / 60);
-  seconds = Math.floor(seconds % 60);
-  return `${days}d ${hours}h ${minutes}m ${seconds}s`;
-}
-
-function countCommands() {
-  const files = fs.readdirSync(path.join(__dirname, "../plugins"));
-  return files.filter(file => file.endsWith(".js")).length;
-}
-
-function getTotalUsers() {
+module.exports = async (ctx) => {
   try {
-    const users = JSON.parse(fs.readFileSync(USERS_FILE));
-    return users.length;
-  } catch {
-    return 0;
-  }
-}
+    // User name safe fallback
+    const name = ctx.from?.first_name + (ctx.from?.last_name ? ` ${ctx.from.last_name}` : "") || "User";
 
-function getRamUsage() {
-  const total = os.totalmem();
-  const free = os.freemem();
-  const used = total - free;
-  const toMB = bytes => (bytes / (1024 * 1024)).toFixed(2) + " MB";
-  return {
-    used: toMB(used),
-    total: toMB(total)
-  };
-}
+    // Plugin count
+    const pluginsDir = path.join(__dirname);
+    const commandFiles = fs.readdirSync(pluginsDir).filter(file => file.endsWith(".js") && file !== "menu.js");
+    const commandCount = commandFiles.length;
 
-module.exports = async (bot, ctx) => {
-  const name = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : "");
-  const uptime = getUptime();
-  const commands = countCommands();
-  const totalUsers = getTotalUsers();
-  const ram = getRamUsage();
-  const date = new Date();
-  const formattedDate = date.toLocaleDateString("en-GB");
-  const formattedTime = date.toLocaleTimeString("en-GB", { hour12: true });
+    // Uptime
+    const seconds = Math.floor(process.uptime());
+    const d = Math.floor(seconds / (3600 * 24));
+    const h = Math.floor((seconds % (3600 * 24)) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
 
-  const caption = `
-┌───────────────────────────────────────┐
-│  🌟  TELOMATE BOT v1.0.0  🌟        
+    // RAM usage
+    const totalMem = os.totalmem();
+    const usedMem = totalMem - os.freemem();
+    const ramUsageMB = (usedMem / 1024 / 1024).toFixed(1);
+
+    // Date + Time
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-GB");
+    const timeStr = now.toLocaleTimeString("en-GB");
+
+    // Load users
+    const users = require("../database/users.json");
+    const userCount = users.length;
+
+    const caption = `┌───────────────────────────────────────┐
+│  🌟  TELOMATE BOT v1.0.0  🌟        │
 ├───────────────────────────────────────┤
-│  👤 User: ${name}               
-│  📊 Commands: ${commands} loaded     
-│  👥 Total Users: ${totalUsers}       
-│  📦 RAM: ${ram.used} / ${ram.total}  
-│  ⏱ Uptime: ${uptime}                 
-│  📅 ${formattedDate}  |  🕒 ${formattedTime}    
+│  👤 User: ${name}                 
+│  📊 Commands: ${commandCount} loaded         
+│  🧠 RAM Usage: ${ramUsageMB} MB
+│  👥 Total Users: ${userCount}
+│  ⏱ Uptime: ${d}d ${h}h ${m}m ${s}s             
+│  📅 ${dateStr}  |  🕒 ${timeStr}    
 └───────────────────────────────────────┘
 
 ▬▬▬▬▬▬▬▬▬  COMMANDS  ▬▬▬▬▬▬▬▬▬
-
 🔹 BASIC
 ├─ /info - User/bot details
 ├─ /start - Initialize bot
@@ -98,15 +80,12 @@ module.exports = async (bot, ctx) => {
 └─ /tokfetch - TikTok DL
 
 ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-💖 Crafted for you by Empire Tech
-  `;
 
-  try {
-    await ctx.replyWithPhoto(
-      { url: process.env.PP },
-      { caption, parse_mode: "Markdown" }
-    );
-  } catch (e) {
-    await ctx.reply("❌ Failed to load menu image.\n\n" + caption);
+✨ Made with ❤️ by Empire Tech`;
+
+    await ctx.replyWithPhoto({ url: process.env.PP }, { caption });
+  } catch (err) {
+    console.error("❌ Menu Error:", err);
+    ctx.reply("⚠️ Failed to load menu.");
   }
 };
